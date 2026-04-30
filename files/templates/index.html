@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRE · Solver de Microservicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --bg: #070a0f;
+    --bg2: #0d1117;
+    --bg3: #141b24;
+    --bg4: #1c2632;
+    --border: #1e3a4a;
+    --border2: #2a4a60;
+    --accent: #00d4ff;
+    --accent2: #00ff9f;
+    --accent3: #ff6b35;
+    --warn: #ffcc00;
+    --danger: #ff3366;
+    --text: #c8d8e8;
+    --text2: #7a9ab0;
+    --text3: #4a6478;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+    --cond: 'Barlow Condensed', sans-serif;
+    --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+    --glow2: 0 0 20px rgba(0, 255, 159, 0.3);
+    --glow3: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,212,255,0.04) 0%, transparent 100%);
+    padding: 0 2rem;
+  }
+
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    border: 1px solid var(--accent);
+    display: grid;
+    place-items: center;
+    position: relative;
+    box-shadow: var(--glow);
+  }
+
+  .logo-icon::before {
+    content: '⬡';
+    color: var(--accent);
+    font-size: 22px;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .logo-text h1 {
+    font-family: var(--cond);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .logo-text span {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .header-status {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text2);
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* ── SECTION TITLES ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header h2 {
+    font-family: var(--cond);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+  }
+
+  /* ── SCENARIO CARDS ── */
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .scenario-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scenario-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    transition: opacity 0.2s;
+    opacity: 0.4;
+  }
+
+  .scenario-card.ideal::before { background: var(--accent2); }
+  .scenario-card.stress::before { background: var(--warn); }
+  .scenario-card.ill::before { background: var(--danger); }
+
+  .scenario-card:hover,
+  .scenario-card.active {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .scenario-card.active::before { opacity: 1; }
+
+  .scenario-card.active.ideal { box-shadow: 0 4px 30px rgba(0,255,159,0.1); border-color: var(--accent2); }
+  .scenario-card.active.stress { box-shadow: 0 4px 30px rgba(255,204,0,0.1); border-color: var(--warn); }
+  .scenario-card.active.ill { box-shadow: 0 4px 30px rgba(255,51,102,0.15); border-color: var(--danger); }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+  }
+
+  .scenario-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border: 1px solid;
+  }
+
+  .badge-ideal { color: var(--accent2); border-color: var(--accent2); }
+  .badge-stress { color: var(--warn); border-color: var(--warn); }
+  .badge-ill { color: var(--danger); border-color: var(--danger); }
+
+  .scenario-card h3 {
+    font-family: var(--cond);
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .scenario-card .subtitle {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-bottom: 0.75rem;
+    font-weight: 300;
+  }
+
+  .scenario-card p {
+    font-size: 0.78rem;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+
+  /* ── MATRIX DISPLAY ── */
+  .matrix-display {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.25rem 1rem;
+    align-items: center;
+  }
+
+  /* ── RESULTS PANEL ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '//';
+    color: var(--text3);
+  }
+
+  /* ── SOLUTION DISPLAY ── */
+  .solution-values {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .val-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .val-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    margin-bottom: 0.4rem;
+  }
+
+  .val-value {
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent2);
+  }
+
+  .val-desc {
+    font-size: 0.65rem;
+    color: var(--text3);
+    margin-top: 0.3rem;
+  }
+
+  /* ── COMPARISON TABLE ── */
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .comparison-table th {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .comparison-table td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgba(30,58,74,0.5);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .comparison-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .method-name {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .conv-yes { color: var(--accent2); }
+  .conv-no { color: var(--danger); }
+  .conv-direct { color: var(--warn); }
+
+  .iter-fast { color: var(--accent2); }
+  .iter-med { color: var(--warn); }
+  .iter-slow { color: var(--danger); }
+
+  /* ── CONVERGENCE CHART ── */
+  .chart-container {
+    position: relative;
+    height: 280px;
+  }
+
+  /* ── 3D VIEWPORT ── */
+  #three-canvas {
+    width: 100%;
+    height: 400px;
+    background: var(--bg3);
+    display: block;
+  }
+
+  .three-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    padding: 6px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .ctrl-btn:hover, .ctrl-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    box-shadow: var(--glow);
+  }
+
+  /* ── INTERACTIVE EDITOR ── */
+  .matrix-editor {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .matrix-grid input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .matrix-grid input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: inset 0 0 8px rgba(0,212,255,0.1);
+  }
+
+  .vector-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .vector-grid input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+    width: 70px;
+    transition: border-color 0.2s;
+  }
+
+  .vector-grid input:focus {
+    outline: none;
+    border-color: var(--accent2);
+  }
+
+  .matrix-sep {
+    font-family: var(--mono);
+    font-size: 2rem;
+    color: var(--text3);
+    align-self: center;
+    padding-top: 0.5rem;
+  }
+
+  .editor-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    background: var(--accent);
+    border: none;
+    color: var(--bg);
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover { box-shadow: var(--glow); filter: brightness(1.1); }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── OMEGA SLIDER ── */
+  .omega-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    margin-top: 1rem;
+  }
+
+  .omega-control label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  .omega-control input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent3);
+  }
+
+  .omega-value {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--accent3);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* ── COND NUMBER ── */
+  .cond-display {
+    padding: 1rem 1.5rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .cond-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 2px;
+  }
+
+  .cond-value {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+  }
+
+  .cond-good { color: var(--accent2); }
+  .cond-med { color: var(--warn); }
+  .cond-bad { color: var(--danger); }
+
+  /* ── LOADING SPINNER ── */
+  .loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text3);
+  }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── INTERPRETATION BOX ── */
+  .interpretation {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 1.25rem 1.5rem;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text2);
+    margin-top: 1rem;
+  }
+
+  .interpretation strong { color: var(--accent); }
+
+  /* ── LU MATRICES ── */
+  .lu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .matrix-view {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1rem;
+  }
+
+  .matrix-view h4 {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 2px;
+    margin-bottom: 0.75rem;
+  }
+
+  .matrix-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 3px;
+  }
+
+  .matrix-cell {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    background: var(--bg4);
+    padding: 5px 10px;
+    min-width: 65px;
+    text-align: right;
+    color: var(--text);
+  }
+
+  .matrix-cell.pivot { color: var(--accent); }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text3);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    bottom: -1px;
+  }
+
+  .tab:hover { color: var(--text2); }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    padding: 1rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: var(--glow);
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .scenarios { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: 1fr; }
+    .matrix-editor { grid-template-columns: auto auto auto auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div class="logo-text">
+        <h1>SRE Solver</h1>
+        <span>Kubernetes · Métodos Numéricos</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot"><span class="dot"></span>CLUSTER ONLINE</div>
+      <div class="status-dot" style="color:var(--text3)">TOL: 1×10⁻⁶</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── INTRO ── -->
+  <div style="margin-bottom:2.5rem; padding:1.5rem; background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--accent);">
+    <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);letter-spacing:3px;margin-bottom:0.75rem;">// CONTEXTO DEL PROBLEMA</div>
+    <p style="font-size:0.9rem;line-height:1.7;color:var(--text2);">
+      Eres un <strong style="color:#fff">Ingeniero de Confiabilidad de Sitio (SRE)</strong> en una empresa de e-commerce.
+      Tu clúster de Kubernetes aloja tres microservicios críticos: <strong style="color:var(--accent2)">Auth (x₁)</strong>,
+      <strong style="color:var(--warn)">Catálogo/DB (x₂)</strong> y <strong style="color:var(--accent3)">Pagos (x₃)</strong>.
+      Debes determinar cuántas <em>unidades de procesamiento</em> asignar a cada uno bajo tres escenarios,
+      cumpliendo restricciones de CPU, RAM y Ancho de Banda del nodo servidor.
+    </p>
+  </div>
+
+  <!-- ── SCENARIO SELECTOR ── -->
+  <div class="section-header">
+    <h2>Escenarios de Carga</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="scenarios">
+    {% for key, sys in systems.items() %}
+    <div class="scenario-card {{ key }} {% if loop.first %}active{% endif %}"
+         onclick="selectScenario('{{ key }}')" id="card-{{ key }}">
+      <div class="card-top">
+        <span class="scenario-num">SCENARIO_{{ "%02d"|format(loop.index) }}</span>
+        <span class="badge {{ sys.badge_class }}">{{ sys.badge }}</span>
+      </div>
+      <h3>{{ sys.name }}</h3>
+      <div class="subtitle">{{ sys.subtitle }}</div>
+      <p>{{ sys.description }}</p>
+      <div class="matrix-display">
+        {% for row in sys.A %}
+        <div>
+          [{% for v in row %}{{ "%.4g"|format(v) }}{% if not loop.last %}, {% endif %}{% endfor %}]
+        </div>
+        {% endfor %}
+        <div style="color:var(--text3)">│</div>
+        {% for v in sys.b %}
+        <div style="color:var(--accent2)">{{ "%.4g"|format(v) }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ── CONDITION NUMBER ── -->
+  <div class="cond-display" id="cond-display">
+    <div>
+      <div class="cond-label">NÚMERO DE CONDICIÓN κ(A)</div>
+      <div style="font-size:0.7rem;color:var(--text3);margin-top:3px">κ &lt; 100: Bien cond. · κ &lt; 10⁶: Moderado · κ ≥ 10⁶: Mal condicionado</div>
+    </div>
+    <div class="cond-value" id="cond-val">—</div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('soluciones')">Soluciones</button>
+    <button class="tab" onclick="showTab('convergencia')">Convergencia</button>
+    <button class="tab" onclick="showTab('lu')">LU Detalle</button>
+    <button class="tab" onclick="showTab('visualizacion')">Planos 3D</button>
+    <button class="tab" onclick="showTab('interactivo')">Editor Interactivo</button>
+  </div>
+
+  <!-- ── TAB: SOLUCIONES ── -->
+  <div id="tab-soluciones" class="tab-content active">
+    <div class="loading" id="loading-sol"><div class="spinner"></div>EJECUTANDO MÉTODOS...</div>
+
+    <div id="solution-content" style="display:none">
+      <div class="results-grid">
+        <!-- Solución Exacta & LU -->
+        <div class="panel">
+          <div class="panel-title">Solución Exacta & Factorización LU</div>
+          <div class="solution-values" id="exact-values"></div>
+          <div id="interpretation-box" class="interpretation"></div>
+        </div>
+
+        <!-- Tabla Comparativa -->
+        <div class="panel">
+          <div class="panel-title">Tabla Comparativa de Métodos</div>
+          <div style="overflow-x:auto">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>MÉTODO</th>
+                  <th>ITERACIONES</th>
+                  <th>CONVERGIÓ</th>
+                  <th>RESIDUAL</th>
+                </tr>
+              </thead>
+              <tbody id="comp-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: CONVERGENCIA ── -->
+  <div id="tab-convergencia" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">Historial de Convergencia (error por iteración)</div>
+      <div class="chart-container">
+        <canvas id="conv-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: LU ── -->
+  <div id="tab-lu" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">Factorización LU — Matrices L y U</div>
+      <div class="lu-grid" id="lu-matrices"></div>
+      <div class="interpretation" id="lu-interpretation" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 3D ── -->
+  <div id="tab-visualizacion" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">Visualización 3D — Intersección de Hiperplanos</div>
+      <div class="three-controls">
+        <button class="ctrl-btn active" onclick="togglePlane(0, this)">Plano 1 (CPU)</button>
+        <button class="ctrl-btn active" onclick="togglePlane(1, this)">Plano 2 (RAM)</button>
+        <button class="ctrl-btn active" onclick="togglePlane(2, this)">Plano 3 (Bandwidth)</button>
+        <button class="ctrl-btn" onclick="resetCamera()">Reset Cámara</button>
+      </div>
+      <canvas id="three-canvas"></canvas>
+      <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);margin-top:0.75rem;text-align:center">
+        ARRASTRAR para rotar · SCROLL para zoom · La esfera indica la solución x*
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: INTERACTIVO ── -->
+  <div id="tab-interactivo" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">Editor de Sistema — Tiempo Real</div>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1.5rem">
+        Modifica los coeficientes de la matriz A y el vector b para observar el impacto en la convergencia.
+      </p>
+
+      <div class="matrix-editor">
+        <div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);margin-bottom:0.5rem;letter-spacing:2px">MATRIZ A (3×3)</div>
+          <div class="matrix-grid" id="editor-A">
+            <input type="number" value="20" step="0.001">
+            <input type="number" value="2" step="0.001">
+            <input type="number" value="1" step="0.001">
+            <input type="number" value="3" step="0.001">
+            <input type="number" value="15" step="0.001">
+            <input type="number" value="4" step="0.001">
+            <input type="number" value="1" step="0.001">
+            <input type="number" value="2" step="0.001">
+            <input type="number" value="10" step="0.001">
+          </div>
+        </div>
+        <div class="matrix-sep">×</div>
+        <div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);margin-bottom:0.5rem;letter-spacing:2px">VECTOR b</div>
+          <div class="vector-grid" id="editor-b">
+            <input type="number" value="100" step="0.001">
+            <input type="number" value="120" step="0.001">
+            <input type="number" value="80" step="0.001">
+          </div>
+        </div>
+        <div class="matrix-sep">=</div>
+      </div>
+
+      <div class="omega-control">
+        <label>ω (SOR):</label>
+        <input type="range" id="omega-slider" min="0.1" max="1.99" step="0.01" value="1.25" oninput="updateOmega(this.value)">
+        <span class="omega-value" id="omega-display">1.25</span>
+        <span style="font-family:var(--mono);font-size:0.65rem;color:var(--text3);margin-left:1rem">ω=1: GS · ω&lt;1: Sub-relajación · ω&gt;1: Sobre-relajación</span>
+      </div>
+
+      <div class="editor-actions">
+        <button class="btn-primary" onclick="solveCustom()">▶ EJECUTAR</button>
+        <button class="btn-secondary" onclick="loadPreset('ideal')">CARGAR IDEAL</button>
+        <button class="btn-secondary" onclick="loadPreset('stress')">CARGAR ESTRÉS</button>
+        <button class="btn-secondary" onclick="loadPreset('ill')">CARGAR MAL COND.</button>
+      </div>
+
+      <div id="custom-loading" class="loading"><div class="spinner"></div>PROCESANDO...</div>
+      <div id="custom-results" style="margin-top:1.5rem;display:none"></div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let currentCase = 'ideal';
+let convChart = null;
+let threeRenderer = null, threeScene = null, threeCamera = null;
+let threeAnimId = null;
+let planes = [];
+let isDragging = false, lastMouse = {x:0, y:0};
+let theta = 0.4, phi = 0.6, radius = 8;
+let currentData = null;
+
+const PRESETS = {
+  ideal:  { A: [[20,2,1],[3,15,4],[1,2,10]], b: [100,120,80] },
+  stress: { A: [[800,150,100],[120,900,200],[100,150,750]], b: [10000,15000,9000] },
+  ill:    { A: [[10,5,2],[10,5.0001,2],[1,1,8]], b: [50,50.0001,40] }
+};
+
+const COLORS = {
+  jacobi:      '#00d4ff',
+  gauss_seidel:'#00ff9f',
+  sor:         '#ff6b35',
+  pcg:         '#cc99ff',
+};
+
+// ─────────────────────────────────────────────
+// SCENARIO SELECTION
+// ─────────────────────────────────────────────
+function selectScenario(key) {
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('card-' + key).classList.add('active');
+  currentCase = key;
+  loadCase(key);
+}
+
+async function loadCase(key) {
+  showLoading(true);
+  hideContent();
+
+  try {
+    const res = await fetch(`/api/solve/${key}`);
+    currentData = await res.json();
+    renderAll(currentData, key);
+  } catch(e) {
+    toast('Error al resolver: ' + e.message);
+  }
+
+  showLoading(false);
+  showContent();
+}
+
+// ─────────────────────────────────────────────
+// RENDER ALL
+// ─────────────────────────────────────────────
+function renderAll(data, key) {
+  renderCondNumber(data.condition_number);
+  renderSolution(data, key);
+  renderComparison(data);
+  renderConvergence(data);
+  renderLU(data.lu);
+  loadPlanes(key);
+}
+
+function renderCondNumber(kappa) {
+  const el = document.getElementById('cond-val');
+  const disp = kappa > 1e10 ? kappa.toExponential(2) : kappa.toFixed(2);
+  let cls = 'cond-good';
+  if (kappa > 1e6) cls = 'cond-bad';
+  else if (kappa > 100) cls = 'cond-med';
+  el.textContent = disp;
+  el.className = 'cond-value ' + cls;
+}
+
+function renderSolution(data, key) {
+  const exact = data.exact.x || data.lu.x;
+  const serviceNames = ['Auth (x₁)', 'Catálogo (x₂)', 'Pagos (x₃)'];
+  const serviceDesc = ['CPU Units', 'RAM Units', 'BW Units'];
+
+  const html = exact ? exact.map((v, i) => `
+    <div class="val-card">
+      <div class="val-label">${serviceNames[i]}</div>
+      <div class="val-value">${v.toFixed(4)}</div>
+      <div class="val-desc">${serviceDesc[i]}</div>
+    </div>
+  `).join('') : '<p style="color:var(--danger)">Sistema singular</p>';
+
+  document.getElementById('exact-values').innerHTML = html;
+
+  const interp = {
+    ideal: `<strong>Operación Normal:</strong> El sistema tiene solución única y bien definida. 
+      Auth requiere ~${exact?exact[0].toFixed(2):'?'} unidades, Catálogo ~${exact?exact[1].toFixed(2):'?'} y Pagos ~${exact?exact[2].toFixed(2):'?'}. 
+      La distribución es equilibrada. Los métodos iterativos convergen en pocas iteraciones gracias a la diagonal dominante.`,
+    stress: `<strong>Black Friday:</strong> La demanda masiva incrementa los recursos necesarios significativamente. 
+      Auth exige ~${exact?exact[0].toFixed(2):'?'} unidades, Catálogo ~${exact?exact[1].toFixed(2):'?'} y Pagos ~${exact?exact[2].toFixed(2):'?'}. 
+      SOR y Gradiente Conjugado Precondicionado son críticos aquí: convergen más rápido en matrices grandes bien condicionadas.`,
+    ill: `<strong>⚠ Redundancia Crítica:</strong> Auth y Catálogo realizan tareas casi idénticas. 
+      El κ(A) extremadamente alto indica que pequeños errores de redondeo generan grandes variaciones en la solución. 
+      Jacobi y Gauss-Seidel pueden <em>no converger</em>. La factorización LU da la respuesta exacta pero con advertencia numérica.`
+  };
+
+  document.getElementById('interpretation-box').innerHTML = interp[key] || '';
+}
+
+function renderComparison(data) {
+  const methods = [
+    { key: 'jacobi',      name: 'Jacobi',       type: 'iter' },
+    { key: 'gauss_seidel',name: 'Gauss-Seidel', type: 'iter' },
+    { key: 'sor',         name: 'SOR (ω=1.25)', type: 'iter' },
+    { key: 'pcg',         name: 'Grad. Conj. P',type: 'iter' },
+    { key: 'lu',          name: 'LU Direct',    type: 'direct' }
+  ];
+
+  const rows = methods.map(m => {
+    const d = data[m.key];
+    if (!d) return '';
+
+    const conv = m.type === 'direct'
+      ? `<span class="conv-direct">DIRECTO</span>`
+      : d.converged
+        ? `<span class="conv-yes">✓ SÍ</span>`
+        : `<span class="conv-no">✗ NO</span>`;
+
+    let iterClass = '';
+    const iters = d.iterations || 1;
+    if (m.type === 'direct') iterClass = 'conv-direct';
+    else if (iters <= 50) iterClass = 'iter-fast';
+    else if (iters <= 200) iterClass = 'iter-med';
+    else iterClass = 'iter-slow';
+
+    const res = m.key === 'lu'
+      ? (typeof d.residual === 'number' ? d.residual.toExponential(2) : d.residual)
+      : (d.errors && d.errors.length ? d.errors[d.errors.length-1].toExponential(2) : '—');
+
+    return `<tr>
+      <td class="method-name">${m.name}</td>
+      <td class="${iterClass}">${m.type==='direct'?'—':iters}</td>
+      <td>${conv}</td>
+      <td style="font-size:0.7rem;color:var(--text3)">${res}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('comp-table-body').innerHTML = rows;
+}
+
+function renderConvergence(data) {
+  const ctx = document.getElementById('conv-chart').getContext('2d');
+
+  if (convChart) { convChart.destroy(); }
+
+  const methods = [
+    { key: 'jacobi',      label: 'Jacobi',        color: COLORS.jacobi },
+    { key: 'gauss_seidel',label: 'Gauss-Seidel',  color: COLORS.gauss_seidel },
+    { key: 'sor',         label: 'SOR',            color: COLORS.sor },
+    { key: 'pcg',         label: 'Grad. Conj. P',  color: COLORS.pcg },
+  ];
+
+  const maxLen = Math.max(...methods.map(m => (data[m.key]?.errors||[]).length));
+  const labels = Array.from({length: Math.min(maxLen, 300)}, (_,i) => i+1);
+
+  const datasets = methods.map(m => {
+    const errs = (data[m.key]?.errors || []).slice(0, 300);
+    return {
+      label: m.label,
+      data: errs.map(e => Math.log10(Math.max(e, 1e-15))),
+      borderColor: m.color,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: 0.1,
+    };
+  }).filter(d => d.data.length > 0);
+
+  convChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      scales: {
+        x: {
+          title: { display: true, text: 'Iteración', color: '#4a6478', font: { family: "'Share Tech Mono'" }},
+          grid: { color: 'rgba(30,58,74,0.5)' },
+          ticks: { color: '#4a6478', font: { family: "'Share Tech Mono'", size: 10 }}
+        },
+        y: {
+          title: { display: true, text: 'log₁₀(error)', color: '#4a6478', font: { family: "'Share Tech Mono'" }},
+          grid: { color: 'rgba(30,58,74,0.5)' },
+          ticks: { color: '#4a6478', font: { family: "'Share Tech Mono'", size: 10 }}
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#7a9ab0', font: { family: "'Share Tech Mono'", size: 10 }, boxWidth: 20 }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(13,17,23,0.95)',
+          borderColor: '#1e3a4a',
+          borderWidth: 1,
+          titleFont: { family: "'Share Tech Mono'" },
+          bodyFont: { family: "'Share Tech Mono'" },
+        }
+      }
+    }
+  });
+}
+
+function renderLU(lu) {
+  if (!lu || !lu.L || !lu.U) {
+    document.getElementById('lu-matrices').innerHTML = '<p style="color:var(--danger)">LU falló o singular</p>';
+    return;
+  }
+  const n = lu.L.length;
+  const matHTML = (M, label, color) => `
+    <div class="matrix-view">
+      <h4>${label}</h4>
+      ${M.map((row,i) => `
+        <div class="matrix-row">${row.map((v,j) => `
+          <div class="matrix-cell ${i===j?'pivot':''}">${v.toFixed(4)}</div>
+        `).join('')}</div>
+      `).join('')}
+    </div>`;
+
+  document.getElementById('lu-matrices').innerHTML =
+    matHTML(lu.L, 'MATRIZ L (Triangular Inferior)', '--accent2') +
+    matHTML(lu.U, 'MATRIZ U (Triangular Superior)', '--accent');
+
+  document.getElementById('lu-interpretation').innerHTML =
+    `<strong>Factorización LU:</strong> A = L·U. La matriz <strong>L</strong> es triangular inferior con 1s en la diagonal (multiplicadores de Gauss).
+    La matriz <strong>U</strong> es triangular superior. Se resuelve primero <strong>Ly = b</strong> (sustitución hacia adelante)
+    y luego <strong>Ux = y</strong> (sustitución hacia atrás). Es un método directo: exacto hasta precisión de máquina.
+    Residual ‖Ax−b‖ = <strong style="color:var(--accent2)">${typeof lu.residual==='number'?lu.residual.toExponential(4):lu.residual}</strong>`;
+}
+
+// ─────────────────────────────────────────────
+// 3D VISUALIZATION (Three.js)
+// ─────────────────────────────────────────────
+async function loadPlanes(key) {
+  const res = await fetch(`/api/plane_data/${key}`);
+  const data = await res.json();
+  init3D(data.A, data.b, data.solution);
+}
+
+function init3D(A, b, sol) {
+  const canvas = document.getElementById('three-canvas');
+
+  if (threeRenderer) {
+    threeRenderer.dispose();
+    if (threeAnimId) cancelAnimationFrame(threeAnimId);
+  }
+
+  threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const width = canvas.parentElement.clientWidth || 800;
+  threeRenderer.setSize(width, 400);  threeRenderer.setClearColor(0x141b24, 1);
+
+  threeScene = new THREE.Scene();
+  threeCamera = new THREE.PerspectiveCamera(50, canvas.clientWidth / 400, 0.1, 100);
+
+  // Determine center from solution
+  const cx = sol ? sol[0] : 0;
+  const cy = sol ? sol[1] : 0;
+  const cz = sol ? sol[2] : 0;
+  const scale = Math.max(Math.abs(cx), Math.abs(cy), Math.abs(cz), 5);
+
+  // Axes
+  const axMat = new THREE.LineBasicMaterial({ color: 0x1e3a4a });
+  const axLen = scale * 1.8;
+  [[1,0,0],[0,1,0],[0,0,1]].forEach(d => {
+    const g = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-axLen*d[0], -axLen*d[1], -axLen*d[2]),
+      new THREE.Vector3( axLen*d[0],  axLen*d[1],  axLen*d[2])
+    ]);
+    threeScene.add(new THREE.Line(g, axMat));
+  });
+
+  // Planes
+  const PLANE_COLORS = [0x00d4ff, 0x00ff9f, 0xff6b35];
+  planes = [];
+
+  for (let i = 0; i < 3; i++) {
+    const [a, b_, c] = A[i];
+    const bi = b[i];
+    const planeSize = scale * 2;
+    const pts = [];
+
+    // Generate a grid of points on the plane a*x + b*y + c*z = bi
+    const steps = 6;
+    for (let u = 0; u <= steps; u++) {
+      for (let v = 0; v <= steps; v++) {
+        const x = cx + (u/steps - 0.5) * planeSize;
+        const y_ = cy + (v/steps - 0.5) * planeSize;
+        let z_;
+        if (Math.abs(c) > 1e-10) {
+          z_ = (bi - a*x - b_*y_) / c;
+        } else if (Math.abs(b_) > 1e-10) {
+          z_ = 0;
+          // just show plane in xz
+        } else {
+          z_ = cz;
+        }
+        pts.push(new THREE.Vector3(x - cx, y_ - cy, z_ - cz));
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    const verts = [];
+    for (let u = 0; u < steps; u++) {
+      for (let v = 0; v < steps; v++) {
+        const i0 = u*(steps+1)+v, i1 = i0+1, i2 = i0+(steps+1), i3 = i2+1;
+        [i0,i2,i1, i1,i2,i3].forEach(idx => {
+          if (pts[idx]) verts.push(pts[idx].x, pts[idx].y, pts[idx].z);
+        });
+      }
+    }
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: PLANE_COLORS[i],
+      transparent: true,
+      opacity: 0.18,
+      side: THREE.DoubleSide
+    });
+
+    const wire = new THREE.MeshBasicMaterial({
+      color: PLANE_COLORS[i],
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    const wireMesh = new THREE.Mesh(geo, wire);
+    const group = new THREE.Group();
+    group.add(mesh);
+    group.add(wireMesh);
+    threeScene.add(group);
+    planes.push(group);
+  }
+
+  // Solution point
+  if (sol) {
+    const spGeo = new THREE.SphereGeometry(scale * 0.04, 16, 16);
+    const spMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const sp = new THREE.Mesh(spGeo, spMat);
+    threeScene.add(sp);
+
+    // Glow ring
+    const rGeo = new THREE.TorusGeometry(scale*0.07, scale*0.01, 8, 24);
+    const rMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+    const ring = new THREE.Mesh(rGeo, rMat);
+    threeScene.add(ring);
+  }
+
+  // Ambient light
+  threeScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+  // Camera orbit
+  function updateCamera() {
+    threeCamera.position.set(
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.cos(theta)
+    );
+    threeCamera.lookAt(0, 0, 0);
+  }
+
+  updateCamera();
+
+  // Mouse controls
+  canvas.onmousedown = e => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; };
+  canvas.onmouseup = () => isDragging = false;
+  canvas.onmousemove = e => {
+    if (!isDragging) return;
+    theta -= (e.clientX - lastMouse.x) * 0.01;
+    phi   -= (e.clientY - lastMouse.y) * 0.01;
+    phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+    lastMouse = { x: e.clientX, y: e.clientY };
+    updateCamera();
+  };
+  canvas.onwheel = e => {
+    radius = Math.max(2, Math.min(20, radius + e.deltaY * 0.01));
+    updateCamera();
+    e.preventDefault();
+  };
+
+  function animate() {
+    threeAnimId = requestAnimationFrame(animate);
+    if (!isDragging) {
+      theta += 0.003;
+      updateCamera();
+    }
+    threeRenderer.render(threeScene, threeCamera);
+  }
+  animate();
+}
+
+function togglePlane(idx, btn) {
+  if (planes[idx]) {
+    planes[idx].visible = !planes[idx].visible;
+    btn.classList.toggle('active');
+  }
+}
+
+function resetCamera() {
+  theta = 0.4; phi = 0.6; radius = 8;
+}
+
+// ─────────────────────────────────────────────
+// INTERACTIVE EDITOR
+// ─────────────────────────────────────────────
+function loadPreset(key) {
+  const p = PRESETS[key];
+  const aInputs = document.querySelectorAll('#editor-A input');
+  const bInputs = document.querySelectorAll('#editor-b input');
+  p.A.flat().forEach((v, i) => aInputs[i].value = v);
+  p.b.forEach((v, i) => bInputs[i].value = v);
+  toast('Preset ' + key.toUpperCase() + ' cargado');
+}
+
+function updateOmega(val) {
+  document.getElementById('omega-display').textContent = parseFloat(val).toFixed(2);
+}
+
+async function solveCustom() {
+  const aInputs = [...document.querySelectorAll('#editor-A input')];
+  const bInputs = [...document.querySelectorAll('#editor-b input')];
+const A = [
+  [0,1,2],
+  [3,4,5],
+  [6,7,8]
+].map(row => row.map(i => parseFloat(aInputs[i].value) || 0));  const b = bInputs.map(i => parseFloat(i.value)||0);
+  const omega = parseFloat(document.getElementById('omega-slider').value);
+
+  document.getElementById('custom-loading').style.display = 'flex';
+  document.getElementById('custom-results').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/solve_custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ A, b })
+    });
+    const data = await res.json();
+
+    if (data.error) { toast(data.error); return; }
+
+    const exact = data.exact.x;
+    const solHTML = exact
+      ? `<div style="margin-bottom:1rem"><strong style="color:var(--accent);font-family:var(--mono);font-size:0.7rem">SOLUCIÓN:</strong>
+          x₁=${exact[0].toFixed(6)}, x₂=${exact[1].toFixed(6)}, x₃=${exact[2].toFixed(6)}</div>`
+      : `<div style="color:var(--danger)">Sistema singular o sin solución</div>`;
+
+    const kappa = data.condition_number;
+    const kappaClass = kappa > 1e6 ? 'cond-bad' : kappa > 100 ? 'cond-med' : 'cond-good';
+
+    const tableRows = [
+      ['Jacobi', data.jacobi],
+      ['Gauss-Seidel', data.gauss_seidel],
+      ['SOR', data.sor],
+      ['Grad. Conj. P.', data.pcg],
+    ].map(([name, d]) => `
+      <tr>
+        <td class="method-name">${name}</td>
+        <td>${d.iterations}</td>
+        <td>${d.converged ? '<span class="conv-yes">✓</span>' : '<span class="conv-no">✗</span>'}</td>
+      </tr>`).join('');
+
+    document.getElementById('custom-results').innerHTML = `
+      ${solHTML}
+      <div style="font-family:var(--mono);font-size:0.8rem;margin-bottom:1rem">
+        κ(A) = <span class="${kappaClass}">${kappa > 1e10 ? kappa.toExponential(2) : kappa.toFixed(2)}</span>
+      </div>
+      <table class="comparison-table">
+        <thead><tr><th>MÉTODO</th><th>ITER</th><th>CONV</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
+
+    document.getElementById('custom-results').style.display = 'block';
+    toast('✓ Sistema resuelto');
+
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    document.getElementById('custom-loading').style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', t.getAttribute('onclick').includes(name));
+  });
+
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + name);
+  });
+
+  // 🔥 FIX: gráfico
+  if (name === 'convergencia' && currentData) {
+    setTimeout(() => renderConvergence(currentData), 50);
+  }
+
+  // 🔥 FIX: 3D
+  if (name === 'visualizacion' && currentData) {
+    setTimeout(() => loadPlanes(currentCase), 50);
+  }
+}
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function showLoading(v) { document.getElementById('loading-sol').style.display = v ? 'flex' : 'none'; }
+function hideContent() { document.getElementById('solution-content').style.display = 'none'; }
+function showContent() { document.getElementById('solution-content').style.display = 'block'; }
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+selectScenario('ideal');
+</script>
+
+</body>
+</html>
